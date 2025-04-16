@@ -1,6 +1,6 @@
 # Discord To Do Bot
 
-![Banner](banner.png)
+![Banner](./assets/banner.png)
 
 A flexible Discord bot that adds/removes custom emojis to channel names using the `/mark` command.
 
