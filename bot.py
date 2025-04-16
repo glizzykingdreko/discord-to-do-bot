@@ -264,30 +264,37 @@ async def mark(interaction: discord.Interaction):
         # Defer response since we might need to wait
         await interaction.response.defer(ephemeral=True)
         
-        # Try to edit the channel safely
-        success, message, retry_after = await safe_channel_edit(channel, new_name)
-        
-        if success:
+        try:
+            # Attempt the edit
+            await channel.edit(name=new_name)
+            update_channel_modified(channel.id)
             logger.info(f"Emoji {action} in channel {channel.name} by {interaction.user.name}")
             await interaction.followup.send(f"Successfully {action} the emoji!", ephemeral=True)
-        else:
-            if retry_after:
+        except discord.errors.HTTPException as e:
+            if e.code == 429:  # Rate limit error
+                retry_after = e.retry_after
                 minutes = int(retry_after // 60)
                 seconds = int(retry_after % 60)
                 time_msg = f"{minutes} minutes and {seconds} seconds" if minutes > 0 else f"{seconds} seconds"
                 await interaction.followup.send(
-                    f"⚠️ {message}\nPlease wait {time_msg} before trying again.\n"
+                    f"⚠️ This channel was edited too recently. Please wait {time_msg} before trying again.\n"
                     "Use `/checkmark` to check when you can modify this channel.",
                     ephemeral=True
                 )
             else:
-                await interaction.followup.send(f"⚠️ {message}", ephemeral=True)
+                raise e
                 
     except discord.Forbidden:
-        await interaction.followup.send("I don't have permission to edit this channel!", ephemeral=True)
+        if not interaction.response.is_done():
+            await interaction.response.send_message("I don't have permission to edit this channel!", ephemeral=True)
+        else:
+            await interaction.followup.send("I don't have permission to edit this channel!", ephemeral=True)
     except Exception as e:
         logger.error(f"Error in mark command: {str(e)}")
-        await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
+        if not interaction.response.is_done():
+            await interaction.response.send_message(f"An error occurred: {str(e)}", ephemeral=True)
+        else:
+            await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
 @bot.tree.command(name="setemoji", description="Set a custom emoji for the mark command")
 async def setemoji(interaction: discord.Interaction, emoji: str):
