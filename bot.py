@@ -247,7 +247,11 @@ async def mark(interaction: discord.Interaction):
     try:
         # Check if the command is used in a channel
         if not isinstance(interaction.channel, discord.TextChannel):
-            await interaction.response.send_message("This command can only be used in text channels!", ephemeral=True)
+            await interaction.response.send_message(
+                "This command can only be used in text channels!", 
+                ephemeral=True,
+                delete_after=5
+            )
             return
 
         channel = interaction.channel
@@ -269,7 +273,11 @@ async def mark(interaction: discord.Interaction):
             await channel.edit(name=new_name)
             update_channel_modified(channel.id)
             logger.info(f"Emoji {action} in channel {channel.name} by {interaction.user.name}")
-            await interaction.followup.send(f"Successfully {action} the emoji!", ephemeral=True)
+            await interaction.followup.send(
+                f"Successfully {action} the emoji!", 
+                ephemeral=True,
+                delete_after=3
+            )
         except discord.errors.HTTPException as e:
             if e.code == 429:  # Rate limit error
                 retry_after = e.retry_after
@@ -279,22 +287,39 @@ async def mark(interaction: discord.Interaction):
                 await interaction.followup.send(
                     f"⚠️ This channel was edited too recently. Please wait {time_msg} before trying again.\n"
                     "Use `/checkmark` to check when you can modify this channel.",
-                    ephemeral=True
+                    ephemeral=True,
+                    delete_after=10  # Longer time for error messages
                 )
             else:
                 raise e
                 
     except discord.Forbidden:
         if not interaction.response.is_done():
-            await interaction.response.send_message("I don't have permission to edit this channel!", ephemeral=True)
+            await interaction.response.send_message(
+                "I don't have permission to edit this channel!", 
+                ephemeral=True,
+                delete_after=5
+            )
         else:
-            await interaction.followup.send("I don't have permission to edit this channel!", ephemeral=True)
+            await interaction.followup.send(
+                "I don't have permission to edit this channel!", 
+                ephemeral=True,
+                delete_after=5
+            )
     except Exception as e:
         logger.error(f"Error in mark command: {str(e)}")
         if not interaction.response.is_done():
-            await interaction.response.send_message(f"An error occurred: {str(e)}", ephemeral=True)
+            await interaction.response.send_message(
+                f"An error occurred: {str(e)}", 
+                ephemeral=True,
+                delete_after=5
+            )
         else:
-            await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
+            await interaction.followup.send(
+                f"An error occurred: {str(e)}", 
+                ephemeral=True,
+                delete_after=5
+            )
 
 @bot.tree.command(name="setemoji", description="Set a custom emoji for the mark command")
 async def setemoji(interaction: discord.Interaction, emoji: str):
@@ -312,11 +337,16 @@ async def setemoji(interaction: discord.Interaction, emoji: str):
             f"Successfully set the mark emoji to: {emoji}\n"
             "Note: This will only affect new marks, existing marked channels will keep the old emoji.\n"
             "The new emoji has been saved and will persist after bot restart.",
-            ephemeral=True
+            ephemeral=True,
+            delete_after=5
         )
     except Exception as e:
         logger.error(f"Error in setemoji command: {str(e)}")
-        await interaction.response.send_message(f"An error occurred: {str(e)}", ephemeral=True)
+        await interaction.response.send_message(
+            f"An error occurred: {str(e)}", 
+            ephemeral=True,
+            delete_after=5
+        )
 
 @bot.tree.command(name="markinfo", description="Show current mark command settings")
 async def markinfo(interaction: discord.Interaction):
@@ -339,20 +369,29 @@ async def markinfo(interaction: discord.Interaction):
 async def checkmark(interaction: discord.Interaction):
     """Check when the current channel can be modified again"""
     if not isinstance(interaction.channel, discord.TextChannel):
-        await interaction.response.send_message("This command can only be used in text channels!", ephemeral=True)
+        await interaction.response.send_message(
+            "This command can only be used in text channels!", 
+            ephemeral=True,
+            delete_after=5
+        )
         return
 
     can_modify, cooldown = can_modify_channel(interaction.channel.id)
     
     if can_modify:
-        await interaction.response.send_message("✅ This channel can be marked now!", ephemeral=True)
+        await interaction.response.send_message(
+            "✅ This channel can be marked now!", 
+            ephemeral=True,
+            delete_after=3
+        )
     else:
         minutes = int(cooldown // 60)
         seconds = int(cooldown % 60)
         time_msg = f"{minutes} minutes and {seconds} seconds" if minutes > 0 else f"{seconds} seconds"
         await interaction.response.send_message(
             f"⏳ This channel can be marked again in {time_msg}",
-            ephemeral=True
+            ephemeral=True,
+            delete_after=5
         )
 
 @bot.tree.error
