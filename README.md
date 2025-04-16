@@ -1,19 +1,17 @@
-# Discord To Do Bot
+# Discord To-Do Bot
 
-![Banner](./assets/banner.png)
-
-A flexible Discord bot that adds/removes custom emojis to channel names using the `/mark` command.
+A Discord bot that helps manage channel markers with emojis. Perfect for tracking support tickets, project tasks, or any other channel-based organization needs.
 
 📖 Read the full article: [How I Track Support Tickets With a Simple Channel Marker Bot](https://medium.com/@glizzykingdreko/how-i-track-support-tickets-with-a-simple-channel-marker-bot-8a92b41f54c1)
 
 ## Table of Contents
 - [Use Cases](#use-cases)
-  - [Support Ticket Management](#support-ticket-management-)
+  - [Support Ticket Management](#support-ticket-management)
   - [Other Use Cases](#other-use-cases)
-    - [Project Management](#project-management-)
-    - [Event Organization](#event-organization-)
-    - [Community Management](#community-management-)
-    - [Server Organization](#server-organization-)
+    - [Project Management](#project-management)
+    - [Event Organization](#event-organization)
+    - [Community Management](#community-management)
+    - [Server Organization](#server-organization)
 - [Features](#features)
 - [Inviting the Bot](#inviting-the-bot)
 - [Setup](#setup)
@@ -21,70 +19,60 @@ A flexible Discord bot that adds/removes custom emojis to channel names using th
 - [Rate Limits](#rate-limits)
 - [Permission System](#permission-system)
 - [Requirements](#requirements)
+- [2.0 Update](#20-update)
 - [Contact](#contact)
 
 ## Use Cases
 
-### Support Ticket Management 🎫
-Originally developed to improve support ticket management in Discord servers. The bot helps track:
-- Unanswered tickets that need attention
-- Tickets requiring follow-up
-- Tickets pending customer response
+### Support Ticket Management
+This bot was originally developed to improve support ticket management in Discord servers. It helps track:
+- Unanswered tickets
+- Tickets waiting for follow-up
 - High-priority issues
+- Completed tickets
 
 Example workflow:
-1. New ticket created: `ticket-123456`
-2. Need to follow up later: `/mark` → `🟣-ticket-123456`
-3. Issue resolved: `/mark` → `ticket-123456`
+1. User creates a support ticket channel
+2. Support team marks it with 🟣 (to-do)
+3. When waiting for user response, mark with ⌛
+4. For urgent issues, mark with 🔴
+5. Once resolved, mark with ✅
 
-This makes it easy to:
-- Quickly identify which tickets need attention
-- Keep track of pending follow-ups
-- Maintain a clear overview of ticket status
+### Additional Use Cases
 
-### Other Use Cases
+#### Project Management
+- Track task progress
+- Mark priority levels
+- Indicate review needed
+- Show completion status
 
-#### Project Management 📊
-- Mark channels that need updates
-- Highlight channels with pending tasks
-- Track channels requiring review
-- Flag important announcements
+#### Event Organization
+- Track event planning stages
+- Mark deadlines
+- Show preparation status
+- Indicate follow-up needed
 
-#### Event Organization 📅
-- Mark channels for ongoing events
-- Highlight channels needing preparation
-- Track post-event cleanup channels
-- Flag channels for important updates
+#### Community Management
+- Track moderation actions
+- Mark channels for review
+- Show maintenance status
+- Indicate special handling
 
-#### Community Management 👥
-- Mark channels needing moderation
-- Highlight channels with active discussions
-- Track channels requiring content updates
-- Flag channels for rule reviews
-
-#### Server Organization 🗂
-- Mark channels under construction
-- Highlight temporary channels
-- Track archived/inactive channels
-- Flag channels for reorganization
+#### Server Organization
+- Categorize channels
+- Show update status
+- Mark temporary channels
+- Indicate special purposes
 
 ## Features
 
-- `/mark` command to toggle emoji in channel names
-- `/checkmark` command to check when a channel can be marked again
-- Smart rate limit handling with cooldown tracking
-- Customizable emoji through environment variables or `/setemoji` command
-- Role and user-based permission system
-- Admin-only mode option
-- `/markinfo` command to view current settings
-- Works in any text channel
-
-## Rate Limits
-
-Due to Discord's API limitations, channel names can only be modified twice every 10 minutes. The bot handles this by:
-- Tracking modification times for each channel
-- Providing clear feedback on when channels can be modified again
-- Offering the `/checkmark` command to check cooldown status
+- Mark channels with custom emojis
+- Role-based permissions
+- Admin controls
+- Rate limit handling
+- Automatic cooldown management
+- Ephemeral responses
+- Open source code
 
 ## Inviting the Bot
 
@@ -106,60 +94,146 @@ Due to Discord's API limitations, channel names can only be modified twice every
 ## Setup
 
 1. Clone this repository
-2. Install the required dependencies:
+2. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-3. Copy `.env.example` to `.env`:
+3. Copy `.example.env` to `.env` and fill in your values:
    ```bash
-   cp .env.example .env
+   cp .example.env .env
    ```
-4. Enable Privileged Intents:
-   - Go to [Discord Developer Portal](https://discord.com/developers/applications/)
-   - Select your application
-   - Go to the "Bot" section
-   - Enable "Message Content Intent" under "Privileged Gateway Intents"
-   - Save changes
-
-5. Edit `.env` with your configuration:
-   - `DISCORD_TOKEN`: Your Discord bot token
-   - `MARK_EMOJI`: The emoji to use (default: 🟣)
-   - `ALLOWED_ROLE_IDS`: Comma-separated list of role IDs that can use the command
-   - `ALLOWED_USER_IDS`: Comma-separated list of user IDs that can use the command
-   - `ADMIN_ONLY`: Set to "true" to allow only server administrators to use the command
-
-6. Run the bot:
+4. Configure your bot token and permissions in `.env`
+5. Run the bot:
    ```bash
    python bot.py
    ```
 
-## Commands
+## Default Commands
 
-- `/mark` - Toggle the emoji in the current channel's name
-- `/setemoji <emoji>` - Set a custom emoji for the mark command (Admin only)
-- `/markinfo` - Show current mark command settings (Admin only)
-- `/help` - Display help information for all commands
+- `/mark` - Toggle emoji in channel name
+- `/waiting` - Mark channel as waiting for response
+- `/urgent` - Mark channel as urgent
+- `/checkmark` - Check when a channel can be marked again
+- `/help` - Show help information
+- `/setemoji` - Change emoji for a command (Admin only)
+- `/sync` - Force sync commands (Admin only)
+
+## Rate Limits
+
+Discord has strict rate limits for channel modifications:
+- 2 channel edits per 10 minutes per channel
+- Global rate limits may apply
+
+The bot handles these limits by:
+- Tracking channel modification times
+- Enforcing cooldowns
+- Providing clear error messages
+- Showing remaining cooldown time
 
 ## Permission System
 
-The bot supports multiple ways to control who can use the `/mark` command:
-
-1. **Admin Only Mode**: When enabled, only server administrators can use the command
-2. **Role-based**: Users with specific roles can use the command
-3. **User-based**: Specific users can use the command
-
-You can configure these in the `.env` file or use the `/markinfo` command to view current settings.
+The bot uses a flexible permission system:
+- Role-based access control
+- User-specific permissions
+- Admin-only mode option
+- Configurable through `.env`
 
 ## Requirements
 
-- Python 3.8 or higher
+- Python 3.8+
 - discord.py
-- python-dotenv 
+- python-dotenv
+- PyYAML
+
+## 2.0 Update
+
+The bot now features a powerful configuration system through `config.yaml`, allowing you to customize and extend its functionality to match your specific needs.
+
+### Custom Command Configuration
+
+The `config.yaml` file lets you define your own commands with:
+- Custom emojis
+- Specific descriptions
+- Unique command names
+
+Example configuration:
+```yaml
+commands:
+  mark:
+    emoji: "🟣"
+    description: "Mark a channel as to-do"
+    command_name: "mark"
+  waiting:
+    emoji: "⌛"
+    description: "Mark a channel as waiting for response"
+    command_name: "waiting"
+  urgent:
+    emoji: "🔴"
+    description: "Mark a channel as urgent"
+    command_name: "urgent"
+```
+
+### Key Features
+
+1. **Dynamic Command Creation**
+   - Commands are automatically created on bot startup
+   - No code changes needed to add new commands
+   - Each command gets its own emoji and description
+
+2. **Flexible Marking System**
+   - Multiple markers can coexist
+   - Easy transition between different states
+   - Clear visual hierarchy with emojis
+
+3. **Easy Customization**
+   - Change emojis without restarting the bot
+   - Add new commands by editing the config file
+   - Modify descriptions to match your workflow
+
+4. **Admin Controls**
+   - Change emojis on the fly with `/setemoji`
+   - Force command sync with `/sync`
+   - Maintain security with permission system
+
+### How to Add New Commands
+
+1. Open `config.yaml`
+2. Add a new command section:
+   ```yaml
+   newcommand:
+     emoji: "🆕"
+     description: "Your command description"
+     command_name: "newcommand"
+   ```
+3. Restart the bot or use `/sync`
+
+The bot will automatically:
+- Create the new command
+- Add it to the help menu
+- Handle all permissions and rate limits
+- Support emoji customization
+
+### Best Practices
+
+1. **Emoji Selection**
+   - Use distinct emojis for different states
+   - Consider color coding for visual hierarchy
+   - Choose emojis that are widely supported
+
+2. **Command Naming**
+   - Use clear, descriptive names
+   - Keep names short but meaningful
+   - Avoid special characters
+
+3. **Description Writing**
+   - Be clear and concise
+   - Explain the purpose
+   - Use consistent formatting
 
 ## Contact
 
-For any inquiries or further information, please reach out:
-
+📧 Email: [glizzykingdreko@gmail.com](mailto:glizzykingdreko@gmail.com)
+🐦 Twitter: [@glizzykingdreko](https://twitter.com/glizzykingdreko)
+💻 GitHub: [glizzykingdreko](https://github.com/glizzykingdreko)
 - Project Maintainer: [glizzykingdreko](mailto:glizzykingdreko@protonmail.com)
-- Twitter: [@glizzykingdreko](https://twitter.com/glizzykingdreko)
 - You like my projects? [Buy me a coffee](https://www.buymeacoffee.com/glizzykingdreko) 

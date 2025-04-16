@@ -1,0 +1,13 @@
+commands:
+  mark:
+    emoji: "🟣"
+    description: "Mark a channel as to-do"
+    command_name: "mark"
+  waiting:
+    emoji: "⌛"
+    description: "Mark a channel as waiting for response" 
+    command_name: "waiting"
+  urgent:
+    emoji: "🔴"
+    description: "Mark a channel as urgent"
+    command_name: "urgent"
