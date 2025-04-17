@@ -89,23 +89,35 @@ async def create_mark_command(cmd_name: str, emoji: str, description: str):
             channel = interaction.channel
             current_name = channel.name
 
+            # Check if channel name starts with any emoji from any command
+            has_emoji = False
+            for cmd_config in COMMANDS_CONFIG.values():
+                if current_name.startswith(f"{cmd_config['emoji']}-"):
+                    current_name = current_name[len(cmd_config['emoji']) + 1:]  # +1 for the hyphen
+                    has_emoji = True
+                    break
+
             # Determine new name
-            if current_name.startswith(f"{emoji}-"):
-                new_name = current_name[len(emoji) + 1:]
-                action = "removed"
+            if has_emoji:
+                new_name = f"{emoji}-{current_name}"
+                action = "changed"
             else:
                 new_name = f"{emoji}-{current_name}"
                 action = "added"
 
-            await interaction.response.defer(ephemeral=True)
+            # Send initial response
+            await interaction.response.send_message(
+                f"Processing {cmd_name} command...", 
+                ephemeral=True,
+                delete_after=1
+            )
             
             try:
                 await channel.edit(name=new_name)
                 update_channel_modified(channel.id)
                 logger.info(f"{cmd_name.capitalize()} emoji {action} in channel {channel.name} by {interaction.user.name}")
-                await interaction.followup.send(
-                    f"Successfully {action} the {cmd_name} marker!", 
-                    ephemeral=True,
+                await interaction.edit_original_response(
+                    content=f"Successfully {action} the {cmd_name} marker!", 
                     delete_after=3
                 )
             except discord.errors.HTTPException as e:
@@ -114,41 +126,24 @@ async def create_mark_command(cmd_name: str, emoji: str, description: str):
                     minutes = int(retry_after // 60)
                     seconds = int(retry_after % 60)
                     time_msg = f"{minutes} minutes and {seconds} seconds" if minutes > 0 else f"{seconds} seconds"
-                    await interaction.followup.send(
-                        f"⚠️ This channel was edited too recently. Please wait {time_msg} before trying again.\n"
+                    await interaction.edit_original_response(
+                        content=f"⚠️ This channel was edited too recently. Please wait {time_msg} before trying again.\n"
                         "Use `/checkmark` to check when you can modify this channel.",
-                        ephemeral=True,
                         delete_after=10
                     )
                 else:
                     raise e
         except discord.Forbidden:
-            if not interaction.response.is_done():
-                await interaction.response.send_message(
-                    "I don't have permission to edit this channel!", 
-                    ephemeral=True,
-                    delete_after=5
-                )
-            else:
-                await interaction.followup.send(
-                    "I don't have permission to edit this channel!", 
-                    ephemeral=True,
-                    delete_after=5
-                )
+            await interaction.edit_original_response(
+                content="I don't have permission to edit this channel!", 
+                delete_after=5
+            )
         except Exception as e:
             logger.error(f"Error in {cmd_name} command: {str(e)}")
-            if not interaction.response.is_done():
-                await interaction.response.send_message(
-                    f"An error occurred: {str(e)}", 
-                    ephemeral=True,
-                    delete_after=5
-                )
-            else:
-                await interaction.followup.send(
-                    f"An error occurred: {str(e)}", 
-                    ephemeral=True,
-                    delete_after=5
-                )
+            await interaction.edit_original_response(
+                content=f"An error occurred: {str(e)}", 
+                delete_after=5
+            )
 
 @bot.event
 async def on_ready():
@@ -314,6 +309,90 @@ async def sync(interaction: discord.Interaction):
             ephemeral=True,
             delete_after=5
         )
+
+@bot.tree.command(name="toggle", description="Remove any emoji prefix from channel name")
+async def toggle(interaction: discord.Interaction):
+    """Remove any emoji prefix from channel name"""
+    try:
+        if not isinstance(interaction.channel, discord.TextChannel):
+            await interaction.response.send_message(
+                "This command can only be used in text channels!", 
+                ephemeral=True,
+                delete_after=5
+            )
+            return
+
+        channel = interaction.channel
+        current_name = channel.name
+
+        # Check if channel name starts with any emoji from any command
+        has_emoji = False
+        for cmd_config in COMMANDS_CONFIG.values():
+            if current_name.startswith(f"{cmd_config['emoji']}-"):
+                current_name = current_name[len(cmd_config['emoji']) + 1:]  # +1 for the hyphen
+                has_emoji = True
+                break
+
+        if not has_emoji:
+            await interaction.response.send_message(
+                "No emoji prefix found to remove!", 
+                ephemeral=True,
+                delete_after=5
+            )
+            return
+
+        await interaction.response.defer(ephemeral=True)
+        
+        try:
+            await channel.edit(name=current_name)
+            update_channel_modified(channel.id)
+            logger.info(f"Removed emoji prefix from channel {channel.name} by {interaction.user.name}")
+            await interaction.followup.send(
+                "Successfully removed the emoji prefix!", 
+                ephemeral=True,
+                delete_after=3
+            )
+        except discord.errors.HTTPException as e:
+            if e.code == 429:
+                retry_after = e.retry_after
+                minutes = int(retry_after // 60)
+                seconds = int(retry_after % 60)
+                time_msg = f"{minutes} minutes and {seconds} seconds" if minutes > 0 else f"{seconds} seconds"
+                await interaction.followup.send(
+                    f"⚠️ This channel was edited too recently. Please wait {time_msg} before trying again.\n"
+                    "Use `/checkmark` to check when you can modify this channel.",
+                    ephemeral=True,
+                    delete_after=10
+                )
+            else:
+                raise e
+    except discord.Forbidden:
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                "I don't have permission to edit this channel!", 
+                ephemeral=True,
+                delete_after=5
+            )
+        else:
+            await interaction.followup.send(
+                "I don't have permission to edit this channel!", 
+                ephemeral=True,
+                delete_after=5
+            )
+    except Exception as e:
+        logger.error(f"Error in toggle command: {str(e)}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                f"An error occurred: {str(e)}", 
+                ephemeral=True,
+                delete_after=5
+            )
+        else:
+            await interaction.followup.send(
+                f"An error occurred: {str(e)}", 
+                ephemeral=True,
+                delete_after=5
+            )
 
 # Run the bot
 bot.run(os.getenv('DISCORD_TOKEN')) 

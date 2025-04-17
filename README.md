@@ -37,6 +37,7 @@ Example workflow:
 3. When waiting for user response, mark with ⌛
 4. For urgent issues, mark with 🔴
 5. Once resolved, mark with ✅
+6. Use `/toggle` to remove any emoji prefix at any time
 
 ### Additional Use Cases
 
@@ -113,6 +114,7 @@ Example workflow:
 - `/mark` - Toggle emoji in channel name
 - `/waiting` - Mark channel as waiting for response
 - `/urgent` - Mark channel as urgent
+- `/toggle` - Remove any emoji prefix from channel name
 - `/checkmark` - Check when a channel can be marked again
 - `/help` - Show help information
 - `/setemoji` - Change emoji for a command (Admin only)
@@ -184,6 +186,7 @@ commands:
    - Multiple markers can coexist
    - Easy transition between different states
    - Clear visual hierarchy with emojis
+   - Quick removal of any marker with `/toggle`
 
 3. **Easy Customization**
    - Change emojis without restarting the bot
