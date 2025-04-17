@@ -72,6 +72,14 @@ def update_config_emoji(command_name: str, new_emoji: str):
     except Exception as e:
         logger.error(f"Failed to update config.yaml file: {e}")
 
+async def delete_message_after(message, delay: float):
+    """Delete a message after a specified delay"""
+    await asyncio.sleep(delay)
+    try:
+        await message.delete()
+    except:
+        pass  # Ignore deletion errors
+
 async def create_mark_command(cmd_name: str, emoji: str, description: str):
     """Create a dynamic mark command"""
     
@@ -81,8 +89,7 @@ async def create_mark_command(cmd_name: str, emoji: str, description: str):
             if not isinstance(interaction.channel, discord.TextChannel):
                 await interaction.response.send_message(
                     "This command can only be used in text channels!", 
-                    ephemeral=True,
-                    delete_after=5
+                    ephemeral=True
                 )
                 return
 
@@ -105,49 +112,45 @@ async def create_mark_command(cmd_name: str, emoji: str, description: str):
                 new_name = f"{emoji}-{current_name}"
                 action = "added"
 
-            # Send initial response
-            await interaction.response.send_message(
-                f"Processing {cmd_name} command...", 
-                ephemeral=True,
-                delete_after=1
-            )
+            # Send initial response and defer
+            await interaction.response.defer(ephemeral=True)
             
             try:
                 await channel.edit(name=new_name)
                 update_channel_modified(channel.id)
                 logger.info(f"{cmd_name.capitalize()} emoji {action} in channel {channel.name} by {interaction.user.name}")
-                await interaction.followup.send(
+                msg = await interaction.followup.send(
                     content=f"Successfully {action} the {cmd_name} marker!",
-                    ephemeral=True,
-                    delete_after=3
+                    ephemeral=True
                 )
+                asyncio.create_task(delete_message_after(msg, 3))
             except discord.errors.HTTPException as e:
                 if e.code == 429:
                     retry_after = e.retry_after
                     minutes = int(retry_after // 60)
                     seconds = int(retry_after % 60)
                     time_msg = f"{minutes} minutes and {seconds} seconds" if minutes > 0 else f"{seconds} seconds"
-                    await interaction.followup.send(
+                    msg = await interaction.followup.send(
                         content=f"⚠️ This channel was edited too recently. Please wait {time_msg} before trying again.\n"
                         "Use `/checkmark` to check when you can modify this channel.",
-                        ephemeral=True,
-                        delete_after=10
+                        ephemeral=True
                     )
+                    asyncio.create_task(delete_message_after(msg, 10))
                 else:
                     raise e
         except discord.Forbidden:
-            await interaction.followup.send(
+            msg = await interaction.followup.send(
                 content="I don't have permission to edit this channel!",
-                ephemeral=True,
-                delete_after=5
+                ephemeral=True
             )
+            asyncio.create_task(delete_message_after(msg, 5))
         except Exception as e:
             logger.error(f"Error in {cmd_name} command: {str(e)}")
-            await interaction.followup.send(
+            msg = await interaction.followup.send(
                 content=f"An error occurred: {str(e)}",
-                ephemeral=True,
-                delete_after=5
+                ephemeral=True
             )
+            asyncio.create_task(delete_message_after(msg, 5))
 
 @bot.event
 async def on_ready():
