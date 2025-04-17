@@ -116,8 +116,9 @@ async def create_mark_command(cmd_name: str, emoji: str, description: str):
                 await channel.edit(name=new_name)
                 update_channel_modified(channel.id)
                 logger.info(f"{cmd_name.capitalize()} emoji {action} in channel {channel.name} by {interaction.user.name}")
-                await interaction.edit_original_response(
-                    content=f"Successfully {action} the {cmd_name} marker!", 
+                await interaction.followup.send(
+                    content=f"Successfully {action} the {cmd_name} marker!",
+                    ephemeral=True,
                     delete_after=3
                 )
             except discord.errors.HTTPException as e:
@@ -126,22 +127,25 @@ async def create_mark_command(cmd_name: str, emoji: str, description: str):
                     minutes = int(retry_after // 60)
                     seconds = int(retry_after % 60)
                     time_msg = f"{minutes} minutes and {seconds} seconds" if minutes > 0 else f"{seconds} seconds"
-                    await interaction.edit_original_response(
+                    await interaction.followup.send(
                         content=f"⚠️ This channel was edited too recently. Please wait {time_msg} before trying again.\n"
                         "Use `/checkmark` to check when you can modify this channel.",
+                        ephemeral=True,
                         delete_after=10
                     )
                 else:
                     raise e
         except discord.Forbidden:
-            await interaction.edit_original_response(
-                content="I don't have permission to edit this channel!", 
+            await interaction.followup.send(
+                content="I don't have permission to edit this channel!",
+                ephemeral=True,
                 delete_after=5
             )
         except Exception as e:
             logger.error(f"Error in {cmd_name} command: {str(e)}")
-            await interaction.edit_original_response(
-                content=f"An error occurred: {str(e)}", 
+            await interaction.followup.send(
+                content=f"An error occurred: {str(e)}",
+                ephemeral=True,
                 delete_after=5
             )
 
@@ -210,7 +214,7 @@ async def help(interaction: discord.Interaction):
         )
     
     embed.set_footer(text="Created by GlizzyKingDreko")
-    await interaction.response.send_message(embed=embed)
+    await interaction.response.send_message(embed=embed, ephemeral=True, delete_after=30)
 
 @bot.tree.command(name="setemoji", description="Set a custom emoji for a specific command")
 async def setemoji(interaction: discord.Interaction, command: str, emoji: str):
