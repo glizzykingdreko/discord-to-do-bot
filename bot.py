@@ -324,8 +324,7 @@ async def toggle(interaction: discord.Interaction):
         if not isinstance(interaction.channel, discord.TextChannel):
             await interaction.response.send_message(
                 "This command can only be used in text channels!", 
-                ephemeral=True,
-                delete_after=5
+                ephemeral=True
             )
             return
 
@@ -343,63 +342,49 @@ async def toggle(interaction: discord.Interaction):
         if not has_emoji:
             await interaction.response.send_message(
                 "No emoji prefix found to remove!", 
-                ephemeral=True,
-                delete_after=5
+                ephemeral=True
             )
             return
 
+        # Send initial response and defer
         await interaction.response.defer(ephemeral=True)
         
         try:
             await channel.edit(name=current_name)
             update_channel_modified(channel.id)
             logger.info(f"Removed emoji prefix from channel {channel.name} by {interaction.user.name}")
-            await interaction.followup.send(
-                "Successfully removed the emoji prefix!", 
-                ephemeral=True,
-                delete_after=3
+            msg = await interaction.followup.send(
+                content="Successfully removed the emoji prefix!",
+                ephemeral=True
             )
+            asyncio.create_task(delete_message_after(msg, 3))
         except discord.errors.HTTPException as e:
             if e.code == 429:
                 retry_after = e.retry_after
                 minutes = int(retry_after // 60)
                 seconds = int(retry_after % 60)
                 time_msg = f"{minutes} minutes and {seconds} seconds" if minutes > 0 else f"{seconds} seconds"
-                await interaction.followup.send(
-                    f"⚠️ This channel was edited too recently. Please wait {time_msg} before trying again.\n"
+                msg = await interaction.followup.send(
+                    content=f"⚠️ This channel was edited too recently. Please wait {time_msg} before trying again.\n"
                     "Use `/checkmark` to check when you can modify this channel.",
-                    ephemeral=True,
-                    delete_after=10
+                    ephemeral=True
                 )
+                asyncio.create_task(delete_message_after(msg, 10))
             else:
                 raise e
     except discord.Forbidden:
-        if not interaction.response.is_done():
-            await interaction.response.send_message(
-                "I don't have permission to edit this channel!", 
-                ephemeral=True,
-                delete_after=5
-            )
-        else:
-            await interaction.followup.send(
-                "I don't have permission to edit this channel!", 
-                ephemeral=True,
-                delete_after=5
-            )
+        msg = await interaction.followup.send(
+            content="I don't have permission to edit this channel!",
+            ephemeral=True
+        )
+        asyncio.create_task(delete_message_after(msg, 5))
     except Exception as e:
         logger.error(f"Error in toggle command: {str(e)}")
-        if not interaction.response.is_done():
-            await interaction.response.send_message(
-                f"An error occurred: {str(e)}", 
-                ephemeral=True,
-                delete_after=5
-            )
-        else:
-            await interaction.followup.send(
-                f"An error occurred: {str(e)}", 
-                ephemeral=True,
-                delete_after=5
-            )
+        msg = await interaction.followup.send(
+            content=f"An error occurred: {str(e)}",
+            ephemeral=True
+        )
+        asyncio.create_task(delete_message_after(msg, 5))
 
 # Run the bot
 bot.run(os.getenv('DISCORD_TOKEN')) 
